@@ -35,28 +35,34 @@ class TestCmeRegistration(TestCase):
                           'email': 'test@email.com',
                           'password': '1234',
                           'name': 'Chester Tester',
-                          'stanford_affiliated': '1',
-                          'how_stanford_affiliated': 'j\'st affiliat\'d',
+                          'first_name': 'Chester',
+                          'last_name': 'Tester',
+                          'birth_date': '09/24',
+#                          'stanford_affiliated': '1',
+#                          'how_stanford_affiliated': 'j\'st affiliat\'d',
                           'honor_code': 'true',
                           'terms_of_service': 'true',
                           'profession': 'profession',
                           'professional_designation': 'professional_designation',
                           'license_number': 'license_number',
-                          'organization': 'organization',
+                          'license_country': 'license_country',
+                          'physician_status': 'physician_status',
+#                          'organization': 'organization',
                           'patient_population': 'patient_population',
                           'specialty': 'specialty',
                           'sub_specialty': 'sub_specialty',
                           'address_1': 'address_1',
                           'address_2': 'address_2',
                           'city': 'city',
-                          'state_province': 'state_province',
+                          'state': 'state',
                           'postal_code': 'postal_code',
                           'country': 'country',
                           'phone_number': 'phone_number',
-                          'extension': 'extension',
-                          'fax': 'fax',
-                          'hear_about_us': 'hear_about_us',
-                          'mailing_list': 'false'}
+#                          'extension': 'extension',
+#                          'fax': 'fax',
+#                          'hear_about_us': 'hear_about_us',
+#                          'mailing_list': 'false'
+                          }
 
     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
                      dedent("""Skipping Test because the url is not in CMS"""))
@@ -69,18 +75,18 @@ class TestCmeRegistration(TestCase):
         response = self.client.post(url, {})
         self.assertContains(response, '{"field": "username", "value": "Error (401 username). E-mail us.", "success": false}')
 
-    @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
-                     dedent("""Skipping Test because the url is not in CMS"""))
-    def test_profession_required(self):
-        """
-        Profession required field
-        """
-
-        self.post_vars['profession'] = ''
-        url = reverse('create_account')
-        response = self.client.post(url, self.post_vars)
-
-        self.assertContains(response, '{"field": "profession", "value": "Choose your profession.", "success": false}')
+#     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
+#                      dedent("""Skipping Test because the url is not in CMS"""))
+#     def test_profession_required(self):
+#         """
+#         Profession required field
+#         """
+# 
+#         self.post_vars['profession'] = ''
+#         url = reverse('create_account')
+#         response = self.client.post(url, self.post_vars)
+# 
+#         self.assertContains(response, '{"field": "profession", "value": "Choose your profession.", "success": false}')
 
     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
                      dedent("""Skipping Test because the url is not in CMS"""))
@@ -89,11 +95,12 @@ class TestCmeRegistration(TestCase):
         License number required field
         """
 
+        self.post_vars['professional_designation'] = 'DO'
         self.post_vars['license_number'] = ''
         url = reverse('create_account')
         response = self.client.post(url, self.post_vars)
 
-        self.assertContains(response, '{"field": "license_number", "value": "Enter your license number.", "success": false}')
+        self.assertContains(response, '{"field": "license_number", "value": "Enter your license number", "success": false}')
 
     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
                      dedent("""Skipping Test because the url is not in CMS"""))
@@ -102,6 +109,7 @@ class TestCmeRegistration(TestCase):
         Patient population required field
         """
 
+        self.post_vars['professional_designation'] = 'DO'
         self.post_vars['patient_population'] = ''
         url = reverse('create_account')
         response = self.client.post(url, self.post_vars)
@@ -115,6 +123,7 @@ class TestCmeRegistration(TestCase):
         Specialty required field
         """
 
+        self.post_vars['professional_designation'] = 'DO'
         self.post_vars['specialty'] = ''
         url = reverse('create_account')
         response = self.client.post(url, self.post_vars)
@@ -144,8 +153,9 @@ class TestCmeRegistration(TestCase):
         self.post_vars['address_1'] = ''
         url = reverse('create_account')
         response = self.client.post(url, self.post_vars)
+        print response
 
-        self.assertContains(response, '{"field": "address_1", "value": "Enter your Address 01", "success": false}')
+        self.assertContains(response, '{"field": "address_1", "value": "Enter your Address 1", "success": false}')
 
     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
                      dedent("""Skipping Test because the url is not in CMS"""))
@@ -167,11 +177,11 @@ class TestCmeRegistration(TestCase):
         State Province required field
         """
 
-        self.post_vars['state_province'] = ''
+        self.post_vars['state'] = ''
         url = reverse('create_account')
         response = self.client.post(url, self.post_vars)
 
-        self.assertContains(response, '{"field": "state_province", "value": "Choose your state/Province", "success": false}')
+        self.assertContains(response, '{"field": "state", "value": "Choose your state", "success": false}')
 
     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
                      dedent("""Skipping Test because the url is not in CMS"""))
@@ -212,18 +222,18 @@ class TestCmeRegistration(TestCase):
 
         self.assertContains(response, '{"field": "phone_number", "value": "Enter your phone number", "success": false}')
 
-    @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
-                     dedent("""Skipping Test because the url is not in CMS"""))
-    def test_hear_about_us_required(self):
-        """
-        Hear about us required field
-        """
-
-        self.post_vars['hear_about_us'] = ''
-        url = reverse('create_account')
-        response = self.client.post(url, self.post_vars)
-
-        self.assertContains(response, '{"field": "hear_about_us", "value": "Choose how you heard about us", "success": false}')
+#     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
+#                      dedent("""Skipping Test because the url is not in CMS"""))
+#     def test_hear_about_us_required(self):
+#         """
+#         Hear about us required field
+#         """
+# 
+#         self.post_vars['hear_about_us'] = ''
+#         url = reverse('create_account')
+#         response = self.client.post(url, self.post_vars)
+# 
+#         self.assertContains(response, '{"field": "hear_about_us", "value": "Choose how you heard about us", "success": false}')
 
     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
                      dedent("""Skipping Test because the url is not in CMS"""))
@@ -253,32 +263,32 @@ class TestCmeRegistration(TestCase):
 
         self.assertContains(response, '{"field": "sub_specialty", "value": "Enter your sub-specialty.", "success": false}')
 
-    @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
-                     dedent("""Skipping Test because the url is not in CMS"""))
-    def test_hear_about_us_other(self):
-        """
-        Hear about us "other" required field
-        """
+#     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
+#                      dedent("""Skipping Test because the url is not in CMS"""))
+#     def test_hear_about_us_other(self):
+#         """
+#         Hear about us "other" required field
+#         """
+# 
+#         self.post_vars['hear_about_us'] = 'Other'
+#         self.post_vars['hear_about_us_free'] = ''
+#         url = reverse('create_account')
+#         response = self.client.post(url, self.post_vars)
+# 
+#         self.assertContains(response, '{"field": "hear_about_us", "value": "Enter how you heard about us.", "success": false}')
 
-        self.post_vars['hear_about_us'] = 'Other'
-        self.post_vars['hear_about_us_free'] = ''
-        url = reverse('create_account')
-        response = self.client.post(url, self.post_vars)
-
-        self.assertContains(response, '{"field": "hear_about_us", "value": "Enter how you heard about us.", "success": false}')
-
-    @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
-                     dedent("""Skipping Test because the url is not in CMS"""))
-    def test_stanford_affiliated_required(self):
-        """
-        Stanford affiliated required field
-        """
-
-        del self.post_vars['stanford_affiliated']
-        url = reverse('create_account')
-        response = self.client.post(url, self.post_vars)
-
-        self.assertContains(response, '{"field": "stanford_affiliated", "value": "Select whether, or not, you are affiliated with Stanford.", "success": false}')
+#     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
+#                      dedent("""Skipping Test because the url is not in CMS"""))
+#     def test_stanford_affiliated_required(self):
+#         """
+#         Stanford affiliated required field
+#         """
+# 
+#         del self.post_vars['stanford_affiliated']
+#         url = reverse('create_account')
+#         response = self.client.post(url, self.post_vars)
+# 
+#         self.assertContains(response, '{"field": "stanford_affiliated", "value": "Select whether, or not, you are affiliated with Stanford.", "success": false}')
 
     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
                      dedent("""Skipping Test because the url is not in CMS"""))
@@ -306,32 +316,32 @@ class TestCmeRegistration(TestCase):
 
         self.assertContains(response, '{"field": "terms_of_service", "value": "You must accept the terms of service.", "success": false}')
 
-    @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
-                     dedent("""Skipping Test because the url is not in CMS"""))
-    def test_stanford_affiliated_choose(self):
-        """
-        How Stanford affiliated required if stanford affiliated
-        """
+#     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
+#                      dedent("""Skipping Test because the url is not in CMS"""))
+#     def test_stanford_affiliated_choose(self):
+#         """
+#         How Stanford affiliated required if stanford affiliated
+#         """
+# 
+#         self.post_vars['how_stanford_affiliated'] = ''
+#         url = reverse('create_account')
+#         response = self.client.post(url, self.post_vars)
+# 
+#         self.assertContains(response, '{"field": "stanford_affiliated", "value": "Choose how you are affiliated with Stanford.", "success": false}')
 
-        self.post_vars['how_stanford_affiliated'] = ''
-        url = reverse('create_account')
-        response = self.client.post(url, self.post_vars)
-
-        self.assertContains(response, '{"field": "stanford_affiliated", "value": "Choose how you are affiliated with Stanford.", "success": false}')
-
-    @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
-                     dedent("""Skipping Test because the url is not in CMS"""))
-    def test_stanford_affiliated_other(self):
-        """
-        Stanford affiliated "other" required field
-        """
-
-        self.post_vars['how_stanford_affiliated'] = 'Other'
-        self.post_vars['how_stanford_affiliated_free'] = ''
-        url = reverse('create_account')
-        response = self.client.post(url, self.post_vars)
-
-        self.assertContains(response, '{"field": "how_stanford_affiliated", "value": "Enter how you are affiliated with Stanford.", "success": false}')
+#     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
+#                      dedent("""Skipping Test because the url is not in CMS"""))
+#     def test_stanford_affiliated_other(self):
+#         """
+#         Stanford affiliated "other" required field
+#         """
+# 
+#         self.post_vars['how_stanford_affiliated'] = 'Other'
+#         self.post_vars['how_stanford_affiliated_free'] = ''
+#         url = reverse('create_account')
+#         response = self.client.post(url, self.post_vars)
+# 
+#         self.assertContains(response, '{"field": "how_stanford_affiliated", "value": "Enter how you are affiliated with Stanford.", "success": false}')
 
     @unittest.skipIf(settings.MITX_FEATURES.get('DISABLE_CME_REGISTRATION_TESTS', False),
                      dedent("""Skipping Test because the url is not in CMS"""))
@@ -357,26 +367,27 @@ class TestCmeRegistration(TestCase):
         #Check cme_user_profile was created
         cme_user_profile = CmeUserProfile.objects.filter(user=user[0],
                                                          name='Chester Tester',
-                                                         stanford_affiliated=True,
-                                                         how_stanford_affiliated='j\'st affiliat\'d',
-                                                         profession='profession',
+#                                                         stanford_affiliated=True,
+#                                                         how_stanford_affiliated='j\'st affiliat\'d',
+#                                                         profession='profession',
                                                          professional_designation='professional_designation',
                                                          license_number='license_number',
-                                                         organization='organization',
+#                                                         organization='organization',
                                                          patient_population='patient_population',
                                                          specialty='specialty',
                                                          sub_specialty='sub_specialty',
                                                          address_1='address_1',
                                                          address_2='address_2',
                                                          city='city',
-                                                         state_province='state_province',
+                                                         state='state',
                                                          postal_code='postal_code',
                                                          country='country',
                                                          phone_number='phone_number',
-                                                         extension='extension',
-                                                         fax='fax',
-                                                         hear_about_us='hear_about_us',
-                                                         mailing_list=False)
+#                                                         extension='extension',
+#                                                         fax='fax',
+#                                                         hear_about_us='hear_about_us',
+#                                                         mailing_list=False
+                                                         )
         self.assertEqual(1, len(cme_user_profile))
 
         #Check user_profile was created
@@ -390,14 +401,14 @@ class TestCmeRegistration(TestCase):
         Everything gets created correctly when all input data good with "others"
         """
 
-        self.post_vars['how_stanford_affiliated'] = 'Other'
-        self.post_vars['how_stanford_affiliated_free'] = 'Wife of the provost'
+#        self.post_vars['how_stanford_affiliated'] = 'Other'
+#        self.post_vars['how_stanford_affiliated_free'] = 'Wife of the provost'
         self.post_vars['specialty'] = 'Other'
         self.post_vars['specialty_free'] = 'Patient care'
         self.post_vars['sub_specialty'] = 'Other'
         self.post_vars['sub_specialty_free'] = 'Legs and feet'
-        self.post_vars['hear_about_us'] = 'Other'
-        self.post_vars['hear_about_us_free'] = 'Through the grapevine'
+#        self.post_vars['hear_about_us'] = 'Other'
+#        self.post_vars['hear_about_us_free'] = 'Through the grapevine'
         url = reverse('create_account')
         response = self.client.post(url, self.post_vars)
 
@@ -415,20 +426,21 @@ class TestCmeRegistration(TestCase):
         #Check cme_user_profile was created
         cme_user_profile = CmeUserProfile.objects.filter(user=user[0],
                                                          name='Chester Tester',
-                                                         stanford_affiliated=True,
-                                                         how_stanford_affiliated='Wife of the provost',
-                                                         profession='profession',
+#                                                         stanford_affiliated=True,
+#                                                         how_stanford_affiliated='Wife of the provost',
+#                                                         profession='profession',
                                                          license_number='license_number',
                                                          patient_population='patient_population',
                                                          specialty='Patient care',
                                                          sub_specialty='Legs and feet',
                                                          address_1='address_1',
                                                          city='city',
-                                                         state_province='state_province',
+                                                         state='state',
                                                          postal_code='postal_code',
                                                          country='country',
                                                          phone_number='phone_number',
-                                                         hear_about_us='Through the grapevine')
+#                                                         hear_about_us='Through the grapevine'
+                                                         )
         self.assertEqual(1, len(cme_user_profile))
 
         #Check user_profile was created
