@@ -31,6 +31,8 @@ from django.http import HttpResponseBadRequest
 from xblock.fields import Scope
 from preview import handler_prefix, get_preview_html
 from mitxmako.shortcuts import render_to_response, render_to_string
+from django.views.decorators.csrf import ensure_csrf_cookie
+from models.settings.course_grading import CourseGradingModel
 
 __all__ = ['orphan_handler', 'xblock_handler']
 
@@ -74,7 +76,10 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
                 :boilerplate: template name for populating fields, optional
               The locator (and old-style id) for the created xblock (minus children) is returned.
     """
-    if course_id is not None:
+    # is this a request for the graderType? (right now mutually exclusive w/ other ops)
+    if request.REQUEST.get('filter') == 'graderType':
+        return _assignment_type_update(request, block, course_id, branch, version_guid)
+    elif course_id is not None:
         location = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
         if not has_access(request.user, location):
             raise PermissionDenied()
@@ -280,6 +285,28 @@ def _delete_item_at_location(item_location, delete_children=False, delete_all_ve
                 modulestore('direct').update_children(parent.location, parent.children)
 
     return JsonResponse()
+
+
+@expect_json
+@login_required
+@require_http_methods(("GET", "POST", "PUT"))
+@ensure_csrf_cookie
+def _assignment_type_update(request, block, course_id=None, branch=None, version_guid=None):
+    """
+    CRUD operations on assignment types for sections and subsections and
+    anything else gradable.
+    """
+    locator = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
+    if not has_access(request.user, locator):
+        raise PermissionDenied()
+
+    if request.method == 'GET':
+        rsp = CourseGradingModel.get_section_grader_type(locator)
+    elif request.method in ('POST', 'PUT'):  # post or put, doesn't matter.
+        rsp = CourseGradingModel.update_section_grader_type(
+            locator, request.json
+        )
+    return JsonResponse(rsp)
 
 
 # pylint: disable=W0613

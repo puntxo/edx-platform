@@ -1572,8 +1572,7 @@ class ContentStoreTest(ModuleStoreTestCase):
             status_code=200,
             html=True
         )
-        # TODO: uncomment when course index no longer has locations being returned.
-        # _test_no_locations(self, resp)
+        _test_no_locations(self, resp)
 
     def test_course_overview_view_with_course(self):
         """Test viewing the course overview page with an existing course"""
@@ -1658,21 +1657,14 @@ class ContentStoreTest(ModuleStoreTestCase):
         test_get_html('tabs')
 
         # settings_details
-        resp = self.client.get_html(reverse('settings_details',
-                                       kwargs={'org': loc.org,
-                                               'course': loc.course,
-                                               'name': loc.name}))
+        resp = self.client.get_html(new_location.url_reverse('settings/details'))
         self.assertEqual(resp.status_code, 200)
         _test_no_locations(self, resp)
 
         # settings_details
-        resp = self.client.get_html(reverse('settings_grading',
-                                       kwargs={'org': loc.org,
-                                               'course': loc.course,
-                                               'name': loc.name}))
+        resp = self.client.get_html(new_location.url_reverse('settings/grading'))
         self.assertEqual(resp.status_code, 200)
-        # TODO: uncomment when grading is not using old locations.
-        # _test_no_locations(self, resp)
+        _test_no_locations(self, resp)
 
         # advanced settings
         resp = self.client.get_html(reverse('course_advanced_settings',
