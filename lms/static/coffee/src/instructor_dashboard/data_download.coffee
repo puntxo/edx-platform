@@ -174,6 +174,7 @@ class GradeDownloads
       id: 'link'
       field: 'link'
       name: gettext('File Name (Newest First)')
+      toolTip: gettext("Links are generated on demand and expire within 5 minutes due to the sensitive nature of student grade information.")
       sortable: false
       minWidth: 150
       cssClass: "file-download-link"
