@@ -449,6 +449,10 @@ section.instructor-dashboard-content-2 {
         height: 300px;
 	padding: 5px;
       }
+     // Disable horizontal scroll bar when grid only has 1 column. Remove this CSS class when more columns added.
+    .slick-viewport {
+      overflow-x: hidden !important;
+      }
     }
   }
 }

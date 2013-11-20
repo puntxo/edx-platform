@@ -107,7 +107,7 @@ class DataDownload
           @$grades_request_response_error.text gettext("Error generating grades. Please try again.")
           $(".msg-error").css({"display":"block"})
         success: (data) =>
-          @$grades_request_response.text gettext("Your grade report is being generated! You can view the status of the generation task in the 'Pending Instructor Tasks' section.")
+          @$grades_request_response.text data['status']
           $(".msg-confirm").css({"display":"block"})
 
   # handler for when the section title is clicked.

@@ -163,6 +163,7 @@ def _section_student_admin(course_id, access):
 
 def _section_data_download(course_id, access):
     """ Provide data for the corresponding dashboard section """
+    # access looks like: {'admin': True, 'forum_admin': False, 'instructor': True, 'staff': True}
     section_data = {
         'section_key': 'data_download',
         'section_display_name': _('Data Download'),
