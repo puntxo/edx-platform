@@ -9,13 +9,12 @@ from collections import defaultdict
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.core.handlers.base import BaseHandler
 from django.test.client import RequestFactory
 
 from dogapi import dog_stats_api
 
 from courseware import courses
-from courseware.model_data import FieldDataCache, DjangoKeyValueStore
+from courseware.model_data import FieldDataCache
 from xblock.fields import Scope
 from xmodule import graders
 from xmodule.capa_module import CapaModule
@@ -440,6 +439,7 @@ def get_score(course_id, user, problem_descriptor, module_creator):
 
     return (correct, total)
 
+
 @contextmanager
 def manual_transaction():
     """A context manager for managing manual transactions"""
@@ -451,6 +451,7 @@ def manual_transaction():
         raise
     else:
         transaction.commit()
+
 
 def iterate_grades_for(course_id, students):
     """Given a course_id and an iterable of students (User), yield a tuple of:
@@ -488,7 +489,7 @@ def iterate_grades_for(course_id, students):
                 request.session = {}
                 gradeset = grade(student, request, course)
                 yield student, gradeset, ""
-            except Exception as exc:
+            except Exception as exc:  # pylint: disable=broad-except
                 # Keep marching on even if this student couldn't be graded for
                 # some reason, but log it for future reference.
                 log.exception(

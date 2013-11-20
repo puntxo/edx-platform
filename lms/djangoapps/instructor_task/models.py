@@ -275,9 +275,9 @@ class S3GradesStore(GradesStore):
         key.set_contents_from_string(
             data,
             headers={
-                "Content-Encoding" : "gzip",
-                "Content-Length" : len(data),
-                "Content-Type" : "text/csv",
+                "Content-Encoding": "gzip",
+                "Content-Length": len(data),
+                "Content-Type": "text/csv",
             }
         )
 

@@ -469,6 +469,7 @@ def delete_problem_module_state(xmodule_instance_args, _module_descriptor, stude
     track_function('problem_delete_state', {})
     return UPDATE_STATUS_SUCCEEDED
 
+
 def push_grades_to_s3(_xmodule_instance_args, _entry_id, course_id, _task_input, action_name):
     """
     For a given `course_id`, generate a grades CSV file for all students that
@@ -499,10 +500,10 @@ def push_grades_to_s3(_xmodule_instance_args, _entry_id, course_id, _task_input,
             'action_name': action_name,
             'attempted': num_attempted,
             'succeeded': num_succeeded,
-            'failed' : num_failed,
-            'total' : num_total,
+            'failed': num_failed,
+            'total': num_total,
             'duration_ms': int((current_time - start_time).total_seconds() * 1000),
-            'step' : curr_step,
+            'step': curr_step,
         }
         _get_current_task().update_state(state=PROGRESS, meta=progress)
 
