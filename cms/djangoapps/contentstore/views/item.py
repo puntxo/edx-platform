@@ -72,12 +72,14 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
                 :category: type of xblock, required
                 :display_name: name for new xblock, optional
                 :boilerplate: template name for populating fields, optional
+                :publish: can be one of three values, 'make_public, 'make_private', or 'create_draft'
               The locator (and old-style id) for the created xblock (minus children) is returned.
     """
     if course_id is not None:
         location = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
         if not has_access(request.user, location):
             raise PermissionDenied()
+
         old_location = loc_mapper().translate_locator_to_location(location)
 
         if request.method == 'GET':
@@ -109,12 +111,14 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
             return _delete_item_at_location(old_location, delete_children, delete_all_versions)
         else:  # Since we have a course_id, we are updating an existing xblock.
             return _save_item(
+                request,
                 location,
                 old_location,
                 data=request.json.get('data'),
                 children=request.json.get('children'),
                 metadata=request.json.get('metadata'),
-                nullout=request.json.get('nullout')
+                nullout=request.json.get('nullout'),
+                publish=request.json.get('publish'),
             )
     elif request.method in ('PUT', 'POST'):
         return _create_item(request)
@@ -125,7 +129,7 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
         )
 
 
-def _save_item(usage_loc, item_location, data=None, children=None, metadata=None, nullout=None):
+def _save_item(request, usage_loc, item_location, data=None, children=None, metadata=None, nullout=None, publish=None):
     """
     Saves certain properties (data, children, metadata, nullout) for a given xblock item.
 
@@ -146,6 +150,14 @@ def _save_item(usage_loc, item_location, data=None, children=None, metadata=None
     except InvalidLocationError:
         log.error("Can't find item by location.")
         return JsonResponse({"error": "Can't find item by location: " + str(item_location)}, 404)
+
+    if publish:
+        if publish == 'make_private':
+            _xmodule_recurse(existing_item, lambda i: modulestore().unpublish(i.location))
+        elif publish == 'create_draft':
+            # This clones the existing item location to a draft location (the draft is
+            # implicit, because modulestore is a Draft modulestore)
+            modulestore().convert_to_draft(item_location)
 
     if data:
         store.update_item(item_location, data)
@@ -194,6 +206,14 @@ def _save_item(usage_loc, item_location, data=None, children=None, metadata=None
         if existing_item.category == 'video':
             manage_video_subtitles_save(existing_item, existing_item)
 
+    # Make public after updating the xblock, in case the caller asked
+    # for both an update and a publish.
+    if publish and publish == 'make_public':
+        _xmodule_recurse(
+            existing_item,
+            lambda i: modulestore().publish(i.location, request.user.id)
+        )
+
     # Note that children aren't being returned until we have a use case.
     return JsonResponse({
         'id': unicode(usage_loc),
@@ -216,10 +236,7 @@ def _create_item(request):
         raise PermissionDenied()
 
     parent = get_modulestore(category).get_item(parent_location)
-    # Necessary to set revision=None or else metadata inheritance does not work
-    # (the ID with @draft will be used as the key in the inherited metadata map,
-    # and that is not expected by the code that later references it).
-    dest_location = parent_location.replace(category=category, name=uuid4().hex, revision=None)
+    dest_location = parent_location.replace(category=category, name=uuid4().hex)
 
     # get the metadata, display_name, and definition from the request
     metadata = {}
@@ -248,7 +265,7 @@ def _create_item(request):
 
     course_location = loc_mapper().translate_locator_to_location(parent_locator, get_course=True)
     locator = loc_mapper().translate_location(course_location.course_id, dest_location, False, True)
-    return JsonResponse({'id': dest_location.url(), "locator": unicode(locator)})
+    return JsonResponse({"locator": unicode(locator)})
 
 
 def _delete_item_at_location(item_location, delete_children=False, delete_all_versions=False):
