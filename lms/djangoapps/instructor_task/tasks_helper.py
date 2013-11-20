@@ -24,6 +24,7 @@ from courseware.models import StudentModule
 from courseware.model_data import FieldDataCache
 from courseware.module_render import get_module_for_descriptor_internal
 from instructor_task.models import GradesStore, InstructorTask, PROGRESS
+from student.models import CourseEnrollment
 
 # define different loggers for use within tasks and on client side
 TASK_LOG = get_task_logger(__name__)
@@ -468,7 +469,6 @@ def delete_problem_module_state(xmodule_instance_args, _module_descriptor, stude
     track_function('problem_delete_state', {})
     return UPDATE_STATUS_SUCCEEDED
 
-
 def push_grades_to_s3(_xmodule_instance_args, _entry_id, course_id, _task_input, action_name):
     """
     For a given `course_id`, generate a grades CSV file for all students that
@@ -477,27 +477,19 @@ def push_grades_to_s3(_xmodule_instance_args, _entry_id, course_id, _task_input,
     `GradesStore.from_config()`) and calling `link_for()` on it. Writes are
     buffered, so we'll never write part of a CSV file to S3 -- i.e. any files
     that are visible in GradesStore will be complete ones.
+
+    As we start to add more CSV downloads, it will probably be worthwhile to
+    make a more general CSVDoc class instead of building out the rows like we
+    do here.
     """
-    # Get start time for task:
     start_time = datetime.now(UTC)
     status_interval = 100
 
-    # The pre-fetching of groups is done to make auth checks not require an
-    # additional DB lookup (this kills the Progress page in particular).
-    # But when doing grading at this scale, the memory required to store the resulting
-    # enrolled_students is too large to fit comfortably in memory, and subsequent
-    # course grading requests lead to memory fragmentation.  So we will err here on the
-    # side of smaller memory allocations at the cost of additional lookups.
-    enrolled_students = User.objects.filter(
-        courseenrollment__course_id=course_id,
-        courseenrollment__is_active=True
-    )
-
-    # perform the main loop
+    enrolled_students = CourseEnrollment.users_enrolled_in(course_id)
+    num_total = enrolled_students.count()
     num_attempted = 0
     num_succeeded = 0
     num_failed = 0
-    num_total = enrolled_students.count()
     curr_step = "Calculating Grades"
 
     def update_task_progress():
@@ -516,17 +508,18 @@ def push_grades_to_s3(_xmodule_instance_args, _entry_id, course_id, _task_input,
 
         return progress
 
-    # Loop over all our students and build a
+    # Loop over all our students and build our CSV lists in memory
     header = None
     rows = []
     err_rows = [["id", "username", "error_msg"]]
     for student, gradeset, err_msg in iterate_grades_for(course_id, enrolled_students):
-        # Periodically update task status (this is a db write)
+        # Periodically update task status (this is a cache write)
         if num_attempted % status_interval == 0:
             update_task_progress()
         num_attempted += 1
 
         if gradeset:
+            # We were able to successfully grade this student for this course.
             num_succeeded += 1
             if not header:
                 header = [section['label'] for section in gradeset[u'section_breakdown']]
@@ -544,21 +537,23 @@ def push_grades_to_s3(_xmodule_instance_args, _entry_id, course_id, _task_input,
             num_failed += 1
             err_rows.append([student.id, student.username, err_msg])
 
+    # By this point, we've got the rows we're going to stuff into our CSV files.
     curr_step = "Uploading CSVs"
     update_task_progress()
 
-    grades_store = GradesStore.from_config()
+    # Generate parts of the file name
     timestamp_str = start_time.strftime("%Y-%m-%d-%H%M")
-
-    TASK_LOG.debug("Uploading CSV files for course {}".format(course_id))
-
     course_id_prefix = urllib.quote(course_id.replace("/", "_"))
+
+    # Perform the actual upload
+    grades_store = GradesStore.from_config()
     grades_store.store_rows(
         course_id,
         "{}_grade_report_{}.csv".format(course_id_prefix, timestamp_str),
         rows
     )
-    # If there are any error rows (don't count the header), write that out as well
+
+    # If there are any error rows (don't count the header), write them out as well
     if len(err_rows) > 1:
         grades_store.store_rows(
             course_id,

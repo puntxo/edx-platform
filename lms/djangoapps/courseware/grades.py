@@ -468,7 +468,7 @@ def iterate_grades_for(course_id, students):
         up the grade. (For display)
     - grade_breakdown : A breakdown of the major components that
         make up the final grade. (For display)
-    - raw_scores contains scores for every graded module
+    - raw_scores: contains scores for every graded module
     """
     course = courses.get_course_by_id(course_id)
 
@@ -481,11 +481,16 @@ def iterate_grades_for(course_id, students):
         with dog_stats_api.timer('lms.grades.iterate_grades_for', tags=['action:{}'.format(course_id)]):
             try:
                 request.user = student
+                # Grading calls problem rendering, which calls masquerading,
+                # which checks session vars -- thus the empty session dict below.
+                # It's not pretty, but untangling that is currently beyond the
+                # scope of this feature.
+                request.session = {}
                 gradeset = grade(student, request, course)
                 yield student, gradeset, ""
             except Exception as exc:
                 # Keep marching on even if this student couldn't be graded for
-                # some reason.
+                # some reason, but log it for future reference.
                 log.exception(
                     'Cannot grade student %s (%s) in course %s because of exception: %s',
                     student.username,

@@ -1071,7 +1071,7 @@ REGISTRATION_OPTIONAL_FIELDS = set([
     'goals',
 ])
 
-# Grades download
+###################### Grade Downloads ######################
 GRADES_DOWNLOAD_ROUTING_KEY = HIGH_MEM_QUEUE
 
 GRADES_DOWNLOAD = {

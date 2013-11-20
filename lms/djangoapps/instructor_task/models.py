@@ -211,7 +211,15 @@ class GradesStore(object):
 
 class S3GradesStore(GradesStore):
     """
+    Grades store backed by S3. The directory structure we use to store things
+    is::
 
+        `{bucket}/{root_path}/{sha1 hash of course_id}/filename`
+
+    We might later use subdirectories or metadata to do more intelligent
+    grouping and querying, but right now it simply depends on its own
+    conventions on where files are stored to know what to display. Clients using
+    this class can name the final file whatever they want.
     """
     def __init__(self, bucket_name, root_path):
         self.root_path = root_path
@@ -224,6 +232,19 @@ class S3GradesStore(GradesStore):
 
     @classmethod
     def from_config(cls):
+        """
+        The expected configuration for an `S3GradesStore` is to have a
+        `GRADES_DOWNLOAD` dict in settings with the following fields::
+
+            STORAGE_TYPE : "s3"
+            BUCKET : Your bucket name, e.g. "grades-bucket"
+            ROOT_PATH : The path you want to store all course files under. Do not
+                        use a leading or trailing slash. e.g. "staging" or
+                        "staging/2013", not "/staging", or "/staging/"
+
+        Since S3 access relies on boto, you must also define `AWS_ACCESS_KEY_ID`
+        and `AWS_SECRET_ACCESS_KEY` in settings.
+        """
         return cls(
             settings.GRADES_DOWNLOAD['BUCKET'],
             settings.GRADES_DOWNLOAD['ROOT_PATH']
