@@ -1,3 +1,5 @@
+// 1
+
 (function () {
     describe('VideoPlayer', function () {
         var state, videoPlayer, player, videoControl, videoCaption,
