@@ -317,7 +317,7 @@ class CourseGradingTest(CourseTestCase):
         self.assertEqual(False, descriptor.graded)
 
         # Change the default grader type to Homework, which should also mark the section as graded
-        CourseGradingModel.update_section_grader_type(self.course_locator, {'graderType': 'Homework'})
+        CourseGradingModel.update_section_grader_type(self.course, 'Homework')
         descriptor = get_modulestore(self.course.location).get_item(self.course.location)
         section_grader_type = CourseGradingModel.get_section_grader_type(self.course_locator)
 
@@ -326,7 +326,7 @@ class CourseGradingTest(CourseTestCase):
         self.assertEqual(True, descriptor.graded)
 
         # Change the grader type back to Not Graded, which should also unmark the section as graded
-        CourseGradingModel.update_section_grader_type(self.course_locator, {'graderType': 'Not Graded'})
+        CourseGradingModel.update_section_grader_type(self.course, 'Not Graded')
         descriptor = get_modulestore(self.course.location).get_item(self.course.location)
         section_grader_type = CourseGradingModel.get_section_grader_type(self.course_locator)
 
@@ -395,7 +395,7 @@ class CourseGradingTest(CourseTestCase):
         self.assertGreater(len(sections), 0, "No sections found")
         section = sections[0]  # just take the first one
         section_locator = loc_mapper().translate_location(self.course_location.course_id, section.location, False, True)
-        return section_locator.url_reverse('xblock') + '?filter=graderType'
+        return section_locator.url_reverse('xblock') + '?fields=graderType'
 
     def test_set_get_section_grader_ajax(self):
         """

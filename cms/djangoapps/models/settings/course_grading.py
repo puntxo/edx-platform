@@ -178,21 +178,18 @@ class CourseGradingModel(object):
         }
 
     @staticmethod
-    def update_section_grader_type(location, jsondict):
-        old_location = loc_mapper().translate_locator_to_location(location)
-        descriptor = get_modulestore(old_location).get_item(old_location)
-
-        if 'graderType' in jsondict and jsondict['graderType'] != u"Not Graded":
-            descriptor.format = jsondict.get('graderType')
+    def update_section_grader_type(descriptor, grader_type):
+        if grader_type is not None and grader_type != u"Not Graded":
+            descriptor.format = grader_type
             descriptor.graded = True
         else:
             del descriptor.format
             del descriptor.graded
 
-        get_modulestore(old_location).update_metadata(
-            old_location, descriptor.get_explicitly_set_fields_by_scope(Scope.settings)
+        get_modulestore(descriptor.location).update_metadata(
+            descriptor.location, descriptor.get_explicitly_set_fields_by_scope(Scope.settings)
         )
-        return jsondict
+        return {'graderType': grader_type}
 
     @staticmethod
     def convert_set_grace_period(descriptor):

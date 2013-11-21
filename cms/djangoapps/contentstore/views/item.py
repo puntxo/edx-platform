@@ -59,7 +59,7 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
         json: returns representation of the xblock (locator id, data, and metadata).
         html: returns HTML for rendering the xblock (which includes both the "preview" view and the "editor" view)
     PUT or POST
-        json: if xblock location is specified, update the xblock instance. The json payload can contain
+        json: if xblock locator is specified, update the xblock instance. The json payload can contain
               these fields, all optional:
                 :data: the new value for the data.
                 :children: the locator ids of children for this xblock.
@@ -68,7 +68,7 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
                 :nullout: which metadata fields to set to None
               The JSON representation on the updated xblock (minus children) is returned.
 
-              if xblock location is not specified, create a new xblock instance. The json playload can contain
+              if xblock locator is not specified, create a new xblock instance. The json playload can contain
               these fields:
                 :parent_locator: parent for new xblock, required
                 :category: type of xblock, required
@@ -76,18 +76,20 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
                 :boilerplate: template name for populating fields, optional
               The locator (and old-style id) for the created xblock (minus children) is returned.
     """
-    # is this a request for the graderType? (right now mutually exclusive w/ other ops)
-    if request.REQUEST.get('filter') == 'graderType':
-        return _assignment_type_update(request, block, course_id, branch, version_guid)
-    elif course_id is not None:
-        location = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
-        if not has_access(request.user, location):
+    if course_id is not None:
+        locator = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
+        if not has_access(request.user, locator):
             raise PermissionDenied()
-        old_location = loc_mapper().translate_locator_to_location(location)
+        old_location = loc_mapper().translate_locator_to_location(locator)
 
         if request.method == 'GET':
             if 'application/json' in request.META.get('HTTP_ACCEPT', 'application/json'):
-                rsp = _get_module_info(location)
+                fields = request.REQUEST.get('fields', '').split(',')
+                if 'graderType' in fields:
+                    # right now can't combine output of this w/ output of _get_module_info, but worthy goal
+                    return JsonResponse(CourseGradingModel.get_section_grader_type(locator))
+                # TODO: pass fields to _get_module_info and only return those
+                rsp = _get_module_info(locator)
                 return JsonResponse(rsp)
             else:
                 component = modulestore().get_item(old_location)
@@ -114,12 +116,13 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
             return _delete_item_at_location(old_location, delete_children, delete_all_versions)
         else:  # Since we have a course_id, we are updating an existing xblock.
             return _save_item(
-                location,
+                locator,
                 old_location,
                 data=request.json.get('data'),
                 children=request.json.get('children'),
                 metadata=request.json.get('metadata'),
-                nullout=request.json.get('nullout')
+                nullout=request.json.get('nullout'),
+                grader_type=request.json.get('graderType')
             )
     elif request.method in ('PUT', 'POST'):
         return _create_item(request)
@@ -130,11 +133,13 @@ def xblock_handler(request, tag=None, course_id=None, branch=None, version_guid=
         )
 
 
-def _save_item(usage_loc, item_location, data=None, children=None, metadata=None, nullout=None):
+def _save_item(usage_loc, item_location, data=None, children=None, metadata=None, nullout=None,
+        grader_type=None
+    ):
     """
-    Saves certain properties (data, children, metadata, nullout) for a given xblock item.
+    Saves properties (data, children, metadata, nullout) for a given xblock item.
 
-    The item_location is still the old-style location.
+    The item_location is still the old-style location whereas usage_loc is a BlockUsageLocator
     """
     store = get_modulestore(item_location)
 
@@ -199,12 +204,16 @@ def _save_item(usage_loc, item_location, data=None, children=None, metadata=None
         if existing_item.category == 'video':
             manage_video_subtitles_save(existing_item, existing_item)
 
-    # Note that children aren't being returned until we have a use case.
-    return JsonResponse({
+    result = {
         'id': unicode(usage_loc),
         'data': data,
         'metadata': own_metadata(existing_item)
-    })
+    }
+    if grader_type is not None:
+        result.update(CourseGradingModel.update_section_grader_type(existing_item, grader_type))
+
+    # Note that children aren't being returned until we have a use case.
+    return JsonResponse(result)
 
 
 @login_required
@@ -285,28 +294,6 @@ def _delete_item_at_location(item_location, delete_children=False, delete_all_ve
                 modulestore('direct').update_children(parent.location, parent.children)
 
     return JsonResponse()
-
-
-@expect_json
-@login_required
-@require_http_methods(("GET", "POST", "PUT"))
-@ensure_csrf_cookie
-def _assignment_type_update(request, block, course_id=None, branch=None, version_guid=None):
-    """
-    CRUD operations on assignment types for sections and subsections and
-    anything else gradable.
-    """
-    locator = BlockUsageLocator(course_id=course_id, branch=branch, version_guid=version_guid, usage_id=block)
-    if not has_access(request.user, locator):
-        raise PermissionDenied()
-
-    if request.method == 'GET':
-        rsp = CourseGradingModel.get_section_grader_type(locator)
-    elif request.method in ('POST', 'PUT'):  # post or put, doesn't matter.
-        rsp = CourseGradingModel.update_section_grader_type(
-            locator, request.json
-        )
-    return JsonResponse(rsp)
 
 
 # pylint: disable=W0613

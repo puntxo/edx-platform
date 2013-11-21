@@ -7,8 +7,8 @@ define(["backbone", "underscore"], function(Backbone, _) {
         idAttribute: 'locator',
         urlRoot : '/xblock/',
         url: function() {
-            // add ?filter=graderType to the request url
-            return Backbone.Model.prototype.url.apply(this) + '?' + $.param({filter: 'graderType'});
+            // add ?fields=graderType to the request url (only needed for fetch, but innocuous for others)
+            return Backbone.Model.prototype.url.apply(this) + '?' + $.param({fields: 'graderType'});
         }
     });
     return AssignmentGrade;
